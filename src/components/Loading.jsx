@@ -15,9 +15,12 @@ const spin = keyframes`
 `;
 
 const Wrapper = styled.div`
+  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px; /* TODO: design token화 */
   color: ${({ theme }) => theme.colors.muted};
 `;

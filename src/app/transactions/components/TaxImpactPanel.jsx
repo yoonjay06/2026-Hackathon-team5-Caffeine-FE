@@ -1,20 +1,42 @@
 import styled from "styled-components";
 import Button from "../../../components/Button";
-import CheckIcon from "../../../assets/CheckIcon.png";
+import CheckIcon from "../../../assets/checkIcon.png";
+import { useState, useEffect } from "react";
+
 const BAR_COLOR = {
   business: "bg_brown",
   personal: "bg_beige",
   unclassified: "bg_gray",
 };
 
-
-function TaxImpactPanel({ summary, estimatedVat }) {
-
+function TaxImpactPanel({
+  summary,
+  estimatedVat,
+  normalInputTax,
+  deemedInputTax,
+  transactions,
+}) {
   // 중복 계산 줄이기
   const isCompleted = summary.unclassified.count === 0;
 
+  const [isSaved, setIsSaved] = useState(false);
+
   const totalAmount =
-    summary.business.total + summary.personal.total + summary.unclassified.total;
+    summary.business.total +
+    summary.personal.total +
+    summary.unclassified.total;
+
+  const handleButtonClick = () => {
+    if (isCompleted) {
+      setIsSaved(true);
+    } else {
+      alert("아직 미분류된 지출이 있습니다.");
+    }
+  };
+
+  useEffect(() => {
+    setIsSaved(false);
+  }, [transactions]);
 
   return (
     <Wrapper>
@@ -23,20 +45,18 @@ function TaxImpactPanel({ summary, estimatedVat }) {
       <VatBox $completed={isCompleted}>
         <Label>현재 반영된 예상 부가세</Label>
         <VatAmount>{estimatedVat.toLocaleString()}원</VatAmount>
-        <SubLabel>사업 지출의 10% 매입세액 공제</SubLabel>
+        <SubLabel>일반 매입세액 10% + 의제매입세액 공제 포함</SubLabel>
         {/*로직 추가 미분류에따른*/}
         {isCompleted && (
           <StatGrid>
             <div>
-              <StatLabel>사업 지출 합계</StatLabel>
-              <StatValue>
-                {summary.business.total.toLocaleString()}원
-              </StatValue>
+              <StatLabel>일반 매입세액 (10%)</StatLabel>
+              <StatValue>{normalInputTax.toLocaleString()}원</StatValue>
             </div>
 
             <div>
-              <StatLabel>분류 건수</StatLabel>
-              <StatValue>{summary.business.count}건</StatValue>
+              <StatLabel>의제매입세액 (9/109)</StatLabel>
+              <StatValue>{deemedInputTax.toLocaleString()}원</StatValue>
             </div>
           </StatGrid>
         )}
@@ -69,24 +89,58 @@ function TaxImpactPanel({ summary, estimatedVat }) {
           </RowValue>
         </BreakdownRow>
 
-        <BreakdownRow>
-          <RowLabel>
-            <Dot $color="bg_gray" />
-            미분류
-          </RowLabel>
+        <UnselectedBox $completed={isCompleted}>
+          <UnselectedTop>
+            <RowLabel>
+              <UnselectedDot $completed={isCompleted} />
+              <UnselectedTitle $completed={isCompleted}>
+                지출 미선택
+              </UnselectedTitle>
+            </RowLabel>
 
-          <RowValue>
-            <Count>{summary.unclassified.count}건</Count>
-            <Amount>{summary.unclassified.total.toLocaleString()}원</Amount>
-          </RowValue>
-        </BreakdownRow>
+            <RowValue>
+              <UnselectedCount $completed={isCompleted}>
+                {summary.unclassified.count}건
+              </UnselectedCount>
+
+              {!isCompleted && (
+                <UnselectedAmount>
+                  {summary.unclassified.total.toLocaleString()}원
+                </UnselectedAmount>
+              )}
+            </RowValue>
+          </UnselectedTop>
+
+          <UnselectedDescription $completed={isCompleted}>
+            {isCompleted ? "모든 지출 구분 완료" : "사업/개인 여부 미선택"}
+          </UnselectedDescription>
+        </UnselectedBox>
       </BreakdownList>
+      <ProgressInfo>
+        <span>
+          {summary.business.count + summary.personal.count}/
+          {summary.business.count +
+            summary.personal.count +
+            summary.unclassified.count}
+          건 완료
+        </span>
+
+        <span>
+          {Math.round(
+            ((summary.business.count + summary.personal.count) /
+              (summary.business.count +
+                summary.personal.count +
+                summary.unclassified.count)) *
+              100,
+          ) || 0}
+          %
+        </span>
+      </ProgressInfo>
+
       <SegmentBar>
         {["business", "personal", "unclassified"].map((key) => {
           const ratio =
-            totalAmount === 0
-              ? 0
-              : (summary[key].total / totalAmount) * 100;
+            totalAmount === 0 ? 0 : (summary[key].total / totalAmount) * 100;
 
           if (ratio === 0) return null;
 
@@ -102,27 +156,47 @@ function TaxImpactPanel({ summary, estimatedVat }) {
 
       {/*로직 수정*/}
       <Notice $completed={isCompleted}>
-        <Icon>
-          {isCompleted ? <img src={CheckIcon} alt="" /> : "💡"}
-        </Icon>
+        <Icon>{isCompleted ? <img src={CheckIcon} alt="" /> : "💡"}</Icon>
 
         <span>
           {isCompleted ? (
-            <>모든 지출이 분류되었습니다! 부가세 공제를 최대로 받을 수 있어요.</>
+            <>
+              모든 지출이 분류되었습니다! 부가세 공제를 최대로 받을 수 있어요.
+            </>
           ) : (
             <>
-              아직 <strong>{summary.unclassified.count}건</strong>이 미분류입니다.
+              아직 <strong>{summary.unclassified.count}건</strong>이
+              미분류입니다.
               <br />
-              모두 분류하면 공제 혜택을 최대로 받을 수 있어요.
+              모두 분류하면 공제 혜택을 최대로
+              <br /> 받을 수 있어요.
             </>
           )}
         </span>
       </Notice>
 
-      <Button variant="button_large_brown" size="large">
-        {isCompleted
-          ? "분류 완료 및 부가세 예측 반영하기"
-          : "분류 완료 및 부가세 예측하기"}
+      <Button
+        variant={
+          isSaved
+            ? "button_large_green"
+            : isCompleted
+              ? "button_large_brown"
+              : "button_large_gray"
+        }
+        size="large"
+        onClick={handleButtonClick}
+      >
+        {isSaved ? (
+          "✓ 저장 완료!"
+        ) : isCompleted ? (
+          "분류 완료 및 부가세 예측 반영하기"
+        ) : (
+          <>
+            품목 분류와 지출 선택 마치고
+            <br />
+            부가세 예측하기
+          </>
+        )}
       </Button>
       {/*절감예상 표시유무 */}
       {isCompleted && (
@@ -145,8 +219,6 @@ const Wrapper = styled.aside`
 
   padding: 3.529vh 1.783vw 3.529vh 1.715vw;
 
-  overflow-y: hidden;
-
   background-color: #fdf9f3;
   border-left: 0.069vw solid rgba(61, 37, 30, 0.08);
 
@@ -155,34 +227,21 @@ const Wrapper = styled.aside`
   > button {
     box-sizing: border-box;
     width: 100%;
-    height: 7.059vh;
     min-height: 7.059vh;
 
     margin-top: 2.353vh;
     padding: 2.059vh 0;
 
-    color: #fdf9f3;
-    background-color: #3d251e;
-
     border: none;
     border-radius: 1.372vw;
 
-    box-shadow:
-      0 0.588vh 0.686vw
-      rgba(61, 37, 30, 0.25);
-
-    font-family: "Outfit", sans-serif;
-    font-size: 0.875rem;
-    font-weight: 700;
-    line-height: 1.225rem;
+    box-shadow: 0 0.588vh 0.686vw rgba(61, 37, 30, 0.25);
 
     text-align: center;
-    white-space: nowrap;
   }
 `;
 
 const PanelTitle = styled.p`
-
   box-sizing: border-box;
   width: 100%;
   height: 4.706vh;
@@ -200,13 +259,10 @@ const PanelTitle = styled.p`
 `;
 
 const VatBox = styled.div`
-
   box-sizing: border-box;
   width: 100%;
-  height: ${({ $completed }) =>
-    $completed ? "27.175vh" : "16.765vh"};
-  min-height: ${({ $completed }) =>
-    $completed ? "27.175vh" : "16.765vh"};
+  height: ${({ $completed }) => ($completed ? "27.175vh" : "16.765vh")};
+  min-height: ${({ $completed }) => ($completed ? "27.175vh" : "16.765vh")};
 
   display: flex;
   flex-direction: column;
@@ -266,7 +322,7 @@ const SubLabel = styled.p`
   color: rgba(201, 168, 130, 0.7);
 
   font-family: "Outfit", sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1rem;
 `;
@@ -315,7 +371,6 @@ const StatValue = styled.p`
 `;
 
 const BreakdownTitle = styled.p`
-
   box-sizing: border-box;
   width: 100%;
   height: 4.824vh;
@@ -339,10 +394,9 @@ const BreakdownTitle = styled.p`
 `;
 
 const BreakdownList = styled.div`
-
   box-sizing: border-box;
   width: 100%;
-  height: 15.294vh;
+  height: auto;
 
   display: flex;
   flex-direction: column;
@@ -359,7 +413,7 @@ const BreakdownList = styled.div`
 const BreakdownRow = styled.div`
   box-sizing: border-box;
   width: 100%;
-  height: 3.529vh;
+  height: 3.529v;
   min-height: 3.529vh;
 
   display: flex;
@@ -411,8 +465,7 @@ const Dot = styled.span`
 
   border-radius: 0.25rem;
 
-  background-color: ${({ theme, $color }) =>
-    theme.colors[$color]};
+  background-color: ${({ theme, $color }) => theme.colors[$color]};
 `;
 
 const SegmentBar = styled.div`
@@ -443,12 +496,10 @@ const SegmentBar = styled.div`
 `;
 
 const Segment = styled.div`
-
   height: 1.176vh;
   flex-shrink: 0;
 
-  background-color: ${({ theme, $color }) =>
-    theme.colors[$color]};
+  background-color: ${({ theme, $color }) => theme.colors[$color]};
 
   &:first-child {
     border-radius: 0.686vw 0 0 0.686vw;
@@ -467,8 +518,7 @@ const Notice = styled.div`
   box-sizing: border-box;
   width: 100%;
 
-  height: ${({ $completed }) =>
-    $completed ? "9.265vh" : "12.132vh"};
+  height: ${({ $completed }) => ($completed ? "9.265vh" : "12.132vh")};
 
   display: flex;
   align-items: flex-start;
@@ -477,11 +527,9 @@ const Notice = styled.div`
   padding: 1.765vh 1.372vw;
   margin: 0;
 
-  color: ${({ $completed }) =>
-    $completed ? "#2e6b47" : "#5c3327"};
+  color: ${({ $completed }) => ($completed ? "#2e6b47" : "#5c3327")};
 
-  background-color: ${({ $completed }) =>
-    $completed ? "#e8f2ec" : "#f2ebe4"};
+  background-color: ${({ $completed }) => ($completed ? "#e8f2ec" : "#f2ebe4")};
 
   border-radius: 1.029vw;
 
@@ -527,6 +575,93 @@ const SavingText = styled.p`
     font-weight: 600;
   }
 `;
+const UnselectedBox = styled.div`
+  box-sizing: border-box;
+  width: 100%;
 
+  display: flex;
+  flex-direction: column;
 
+  padding: 10px 12px;
+
+  background-color: ${({ $completed }) => ($completed ? "#F0F7F2" : "#FFF0E6")};
+
+  border-radius: 12px;
+`;
+
+const UnselectedTop = styled.div`
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const UnselectedDot = styled.span`
+  width: 0.625rem;
+  height: 0.625rem;
+  flex-shrink: 0;
+
+  background-color: ${({ $completed }) => ($completed ? "#2E7D52" : "#E98252")};
+
+  border-radius: 0.25rem;
+`;
+
+const UnselectedTitle = styled.span`
+  color: ${({ $completed }) => ($completed ? "#2E7D52" : "#C05328")};
+
+  font-family: "Outfit", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+`;
+
+const UnselectedCount = styled.span`
+  color: ${({ $completed }) => ($completed ? "#2E7D52" : "#C05328")};
+
+  font-family: "Outfit", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+`;
+
+const UnselectedAmount = styled.span`
+  color: #9b6e62;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1rem;
+`;
+
+const UnselectedDescription = styled.p`
+  margin: 4px 0 0;
+
+  color: ${({ $completed }) => ($completed ? "#6A9B7E" : "#D88662")};
+
+  font-family: "Outfit", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1rem;
+`;
+
+const ProgressInfo = styled.div`
+  width: 100%;
+
+  display: flex;
+  justify-content: space-between;
+
+  padding: 10px 1.441vw 0;
+
+  color: #9b6e62;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+
+  background-color: #fffcf8;
+
+  border-right: 0.069vw solid rgba(61, 37, 30, 0.07);
+  border-left: 0.069vw solid rgba(61, 37, 30, 0.07);
+`;
 export default TaxImpactPanel;

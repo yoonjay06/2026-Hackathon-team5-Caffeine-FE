@@ -1,15 +1,8 @@
-import { useState } from "react";
 import styled from "styled-components";
-import searchIcon from "../../../assets/search-icon.png"; 
+import searchIcon from "../../../assets/search-icon.png";
 
-function ChatHeader({ onSearch }) {
-  const [searchValue, setSearchValue] = useState("");
-
-  const handleChange = (e) => {
-    setSearchValue(e.target.value);
-    onSearch?.(e.target.value);
-  };
-
+// TODO: 대화 내역 검색 API 백엔드 미구현 - 추가되면 연동 필요
+function ChatHeader() {
   return (
     <Wrapper>
       <TitleGroup>
@@ -19,9 +12,8 @@ function ChatHeader({ onSearch }) {
 
       <SearchBox>
         <SearchInput
-          value={searchValue}
-          onChange={handleChange}
-          placeholder="이전 대화 내역 검색..."
+          placeholder="검색 기능 준비 중이에요"
+          disabled
         />
         <SearchIcon src={searchIcon} alt="" />
       </SearchBox>
@@ -81,6 +73,10 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: #A88980; /* TODO: theme.js에 없는 값 */
+  }
+
+  &:disabled {
+    cursor: not-allowed;
   }
 `;
 

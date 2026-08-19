@@ -6,7 +6,7 @@ import SideBar from "./SideBar";
 function AppLayout() {
   const { business } = useBusiness();
 
-  if (!business.isSetupComplete) {
+  if (!business.isSetupComplete && window.location.pathname !== "/app/setup/business") {
     return <Navigate to="/app/setup/business" replace />;
   }
 

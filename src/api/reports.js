@@ -1,8 +1,8 @@
 import client from "./client";
 
 // 신고 준비자료 생성(질문목록 포함)
-export const generateReport = (month) =>
-  client.post(`/reports/generate/`, null, { params: { month } });
+export const generateReport = (data) =>
+  client.post(`/reports/`, data);
 
 // 파일 다운로드 (format: pdf | excel | csv)
 export const downloadReport = (id, format) =>

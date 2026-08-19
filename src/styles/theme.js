@@ -11,6 +11,7 @@ export const theme = {
     error: "#E03131",
     bg_white:"#FDF9F3",
     bg_gray: "#EDE8E2",
+    bg_dark_gray: "#A1A1AA",
     bg_brown: "#3D251E",
     bg_beige: "#C9A882",
     bg_green: "#3A6B4A",

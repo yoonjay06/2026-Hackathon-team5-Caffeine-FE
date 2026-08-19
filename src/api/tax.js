@@ -13,13 +13,13 @@ export const confirmDeduction = (transactionId, data) =>
   client.patch(`/tax/deductions/${transactionId}/`, data);
 
 // 예상 부가세 조회
-export const getVatForecast = (month) =>
-  client.get(`/tax/vat-forecast/`, { params: { month } });
+export const getVatForecast = (businessId, year, month) =>
+  client.get(`/tax/vat-forecast/`, { params: { business_id: businessId, year, month } });
 
-// 월 마감 요약
-export const getClosingSummary = (month) =>
-  client.get(`/tax/closing/${month}/`);
+// 월 마감 요약 (마감 전이면 미리보기 요약, 마감 후면 스냅샷 - 응답의 status로 마감 여부 판단)
+export const getClosingSummary = (businessId, yearMonth) =>
+  client.get(`/tax/closing/${yearMonth}/`, { params: { business_id: businessId } });
 
 // 월 마감 승인
-export const approveClosing = (month) =>
-  client.post(`/tax/closing/${month}/approve/`);
+export const approveClosing = (businessId, yearMonth) =>
+  client.post(`/tax/closing/${yearMonth}/approve/`, { business_id: businessId });

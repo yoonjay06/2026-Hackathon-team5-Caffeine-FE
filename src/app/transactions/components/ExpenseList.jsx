@@ -7,13 +7,28 @@ const LEGEND = [
   { key: "unclassified", label: "미분류", color: "bg_gray" },
 ];
 
-function ExpenseList({ transactions, summary, onCategoryChange }) {
+function ExpenseList({
+  transactions,
+  summary,
+  selectedFilter,
+  onCategoryChange,
+  onItemCategoryChange,
+}) {
   const totalCount = transactions.length;
   const classifiedCount = totalCount - summary.unclassified.count;
 
   const progressPercent =
     totalCount === 0 ? 0 : (classifiedCount / totalCount) * 100;
 
+  const filteredTransactions = transactions.filter((tx) => {
+  if (selectedFilter === "all") return true;
+
+  if (selectedFilter === "unclassified") {
+    return tx.category === null;
+  }
+
+  return tx.category === selectedFilter;
+});
   return (
     <Wrapper>
       <ListHeader>
@@ -41,11 +56,12 @@ function ExpenseList({ transactions, summary, onCategoryChange }) {
       </ListHeader>
 
       <CardGrid>
-        {transactions.map((tx) => (
+        {filteredTransactions.map((tx) => (
           <ExpenseListItem
-            key={tx.id}
+            key={tx.transaction_id}
             transaction={tx}
             onCategoryChange={onCategoryChange}
+            onItemCategoryChange={onItemCategoryChange}
           />
         ))}
       </CardGrid>
@@ -128,6 +144,8 @@ const CardGrid = styled.div`
 
   overflow-x: auto;
   overflow-y: auto;
+
+  scrollbar-width: none;
 
   display: grid;
   grid-template-columns: repeat(2, minmax(295.2px, 1fr));

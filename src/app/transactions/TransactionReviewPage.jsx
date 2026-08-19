@@ -1,32 +1,107 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import styled from "styled-components";
 import ExpenseHeader from "./components/ExpenseHeader";
 import ExpenseSummaryBanner from "./components/ExpenseSummaryBanner";
 import ExpenseList from "./components/ExpenseList";
 import TaxImpactPanel from "./components/TaxImpactPanel";
+import Loading from "../../components/Loading";
+import ErrorState from "../../components/ErrorState";
+import { useBusiness } from "../../contexts/BusinessContext";
+import {
+  getTransactions,
+  updateTransactionPurpose,
+  updateTransactionCategory,
+} from "../../api/transactions";
+import { ITEM_CATEGORY_LABEL } from "./constants";
 
-const MOCK_TRANSACTIONS = [
-  { id: 1, icon: "🥛", merchant: "서울우유 대리점", memo: "식자재", date: "8월 8일", amount: 850000, category: "business" },
-  { id: 2, icon: "🛒", merchant: "신세계 마트", memo: "식자재·소모품", date: "8월 7일", amount: 320000, category: "business" },
-  { id: 3, icon: "🏪", merchant: "GS25 편의점", memo: "개인구매", date: "8월 6일", amount: 12500, category: "personal" },
-  { id: 4, icon: "⚡", merchant: "한국전력공사", memo: "전기요금", date: "8월 5일", amount: 278000, category: "business" },
-  { id: 5, icon: "📦", merchant: "쿠팡 비즈니스", memo: "사무용품", date: "8월 4일", amount: 95400, category: "business" },
-  { id: 6, icon: "🎬", merchant: "넷플릭스 코리아", memo: "구독", date: "8월 3일", amount: 17000, category: "personal" },
-  { id: 7, icon: "☕", merchant: "더치트커피 원두", memo: "원두·재료", date: "8월 2일", amount: 430000, category: "business" },
-  { id: 8, icon: "💳", merchant: "카카오페이 수수료", memo: "결제수수료", date: "8월 1일", amount: 22300, category: "business" },
-  { id: 9, icon: "🧴", merchant: "올리브영", memo: "개인용품", date: "7월 31일", amount: 38000, category: "personal" },
-  { id: 10, icon: "📡", merchant: "KT 인터넷", memo: "통신비", date: "7월 30일", amount: 55000, category: "business" },
-  { id: 11, icon: "🏬", merchant: "이마트 트레이더스", memo: "식자재", date: "7월 29일", amount: 512000, category: "business" },
-  { id: 12, icon: "📣", merchant: "배달의민족 광고", memo: "마케팅", date: "7월 28일", amount: 180000, category: "business" },
-];
+const YEAR = 2026;
+const MONTH = 8; // TODO: 실제로는 현재 월 기준 동적 계산 필요
+
+// expense_purpose.code(BUSINESS/PERSONAL/UNCLASSIFIED)를 mock 시절 category 값(business/personal/null)으로,
+// 나머지 필드(total_amount 문자열→숫자, date 포맷, icon/memo 등 API에 없는 표시용 값)를 컴포넌트가 기대하는 형태로 변환
+const PURPOSE_TO_CATEGORY = {
+  BUSINESS: "business",
+  PERSONAL: "personal",
+  UNCLASSIFIED: null,
+};
+
+function formatDate(isoDate) {
+  const [, month, day] = isoDate.split("-");
+  return `${Number(month)}월 ${Number(day)}일`;
+}
+
+function normalizeTransaction(raw) {
+  return {
+    transaction_id: raw.transaction_id,
+    icon: "🧾",
+    merchant_name: raw.merchant_name || "상호명 미확인",
+    memo: raw.category?.label ?? "미분류",
+    date: formatDate(raw.date),
+    total_amount: Number(raw.total_amount),
+    category: PURPOSE_TO_CATEGORY[raw.expense_purpose?.code] ?? null,
+    itemCategoryCode: raw.category?.code ?? "UNCLASSIFIED",
+    is_deemed: raw.is_deemed,
+  };
+}
 
 function TransactionReviewPage() {
-  const [transactions, setTransactions] = useState(MOCK_TRANSACTIONS);
+  const { business } = useBusiness();
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleCategoryChange = (id, category) => {
+  const loadData = useCallback(async () => {
+    const res = await getTransactions(business.businessId, {
+      start_date: `${YEAR}-${String(MONTH).padStart(2, "0")}-01`,
+    });
+    setTransactions(res.data.data.items.map(normalizeTransaction));
+  }, [business.businessId]);
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        await loadData();
+      } catch {
+        setError("거래 내역을 불러오지 못했어요. 사업장 정보를 확인해주세요.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [loadData]);
+
+  const handleCategoryChange = async (id, category) => {
+    const target = transactions.find((tx) => tx.transaction_id === id);
+    if (!target) return;
+    const nextCategory = target.category === category ? null : category;
+    const expensePurpose =
+      nextCategory === null ? "UNCLASSIFIED" : nextCategory.toUpperCase();
+
     setTransactions((prev) =>
-      prev.map((tx) => (tx.id === id ? { ...tx, category } : tx))
+      prev.map((tx) =>
+        tx.transaction_id === id ? { ...tx, category: nextCategory } : tx,
+      ),
     );
+
+    await updateTransactionPurpose(business.businessId, id, expensePurpose);
+  };
+
+  const handleItemCategoryChange = async (id, categoryCode) => {
+    setTransactions((prev) =>
+      prev.map((tx) =>
+        tx.transaction_id === id
+          ? {
+              ...tx,
+              itemCategoryCode: categoryCode,
+              memo: ITEM_CATEGORY_LABEL[categoryCode],
+            }
+          : tx,
+      ),
+    );
+
+    await updateTransactionCategory(business.businessId, id, categoryCode);
   };
 
   const summary = useMemo(() => {
@@ -41,39 +116,89 @@ function TransactionReviewPage() {
       if (!result[key]) return;
 
       result[key].count += 1;
-      result[key].total += tx.amount;
+      result[key].total += tx.total_amount;
     });
 
     return result;
   }, [transactions]);
 
-  // 배너 + 우측 패널 양쪽에서 쓰는 값이라 페이지 레벨에서 한 번만 계산
-  const estimatedVat = useMemo(
-    () => Math.round(summary.business.total * 0.1),
-    [summary]
+  // 사업/개인 미분류(category)와 품목 미분류(itemCategoryCode)는 서로 다른 개념이라 별도로 카운트
+  const itemUnclassifiedCount = useMemo(
+    () =>
+      transactions.filter((tx) => tx.itemCategoryCode === "UNCLASSIFIED")
+        .length,
+    [transactions],
   );
+
+  // 배너 + 우측 패널 양쪽에서 쓰는 값이라 페이지 레벨에서 한 번만 계산
+  const taxSummary = useMemo(() => {
+    let normalInputTax = 0;
+    let deemedInputTax = 0;
+
+    transactions.forEach((tx) => {
+      if (tx.category !== "business") return;
+
+      if (tx.is_deemed) {
+        deemedInputTax += Math.round(tx.total_amount * (9 / 109));
+      } else {
+        normalInputTax += Math.round(tx.total_amount * 0.1);
+      }
+    });
+
+    return {
+      normalInputTax,
+      deemedInputTax,
+      estimatedVat: normalInputTax + deemedInputTax,
+    };
+  }, [transactions]);
+
+  const [selectedFilter, setSelectedFilter] = useState("all");
+
+  const handleRetry = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await loadData();
+    } catch {
+      setError("거래 내역을 불러오지 못했어요. 사업장 정보를 확인해주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorState message={error} onRetry={handleRetry} />;
 
   return (
     <Wrapper>
-      <ExpenseHeader />
+      <ExpenseHeader year={YEAR} month={MONTH} />
 
       <ContentGrid>
         <LeftColumn>
           <ExpenseSummaryBanner
             unclassifiedCount={summary.unclassified.count}
-            estimatedDeduction={estimatedVat}
+            estimatedDeduction={taxSummary.estimatedVat}
+            summary={summary}
+            totalCount={transactions.length}
+            selectedFilter={selectedFilter}
+            onFilterChange={setSelectedFilter}
           />
 
           <ExpenseList
             transactions={transactions}
             summary={summary}
+            selectedFilter={selectedFilter}
+            onItemCategoryChange={handleItemCategoryChange}
             onCategoryChange={handleCategoryChange}
           />
         </LeftColumn>
 
         <TaxImpactPanel
           summary={summary}
-          estimatedVat={estimatedVat}
+          estimatedVat={taxSummary.estimatedVat}
+          normalInputTax={taxSummary.normalInputTax}
+          deemedInputTax={taxSummary.deemedInputTax}
+          transactions={transactions}
         />
       </ContentGrid>
     </Wrapper>
@@ -82,9 +207,11 @@ function TransactionReviewPage() {
 
 const Wrapper = styled.div`
   height: 100%;
-  min-height: 0; /* 스크롤 체인 2단계 */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+
+  scrollbar-width: none;
 `;
 
 const ContentGrid = styled.div`

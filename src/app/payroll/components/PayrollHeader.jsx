@@ -7,7 +7,10 @@ function PayrollHeader({ onAddClick }) {
         <Title>인건비 관리</Title>
         <SubRow>
           <Eyebrow>2026년 8월 급여 기준</Eyebrow>
-          <Badge>9월 10일 원천세 납부 예정</Badge>
+          <Badge>
+            <Dot></Dot>
+            9월 10일 원천세 납부 예정
+          </Badge>
         </SubRow>
       </TitleGroup>
       <AddButton type="button" onClick={onAddClick}>
@@ -56,6 +59,9 @@ const Badge = styled.span`
   padding: 2px 8px; /* TODO: design token화 */
   font-size: 12px; /* TODO: design token화 */
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const AddButton = styled.button`
@@ -71,5 +77,12 @@ const AddButton = styled.button`
   font-weight: 600;
   cursor: pointer;
 `;
+
+const Dot = styled.div`
+border-radius: 2.5px;
+opacity: 0.6041;
+background: #B45309;
+width: 5px;
+height: 5px;`;
 
 export default PayrollHeader;

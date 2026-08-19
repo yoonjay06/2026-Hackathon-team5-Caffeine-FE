@@ -1,19 +1,25 @@
 import styled from "styled-components";
-import logo from "../assets/logo.png";
+import logo from "../assets/Logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../router/paths";
+import { useState, useEffect } from "react";
+import { getBusinessSettings } from "../api/settings";
+import { useBusiness } from "../contexts/BusinessContext";
 
 const MENU_ROUTE_MAP = {
   홈: ROUTES.DASHBOARD,
   "지출 내역 분류": ROUTES.TRANSACTIONS_REVIEW,
   "AI 세무 챗봇": ROUTES.CHAT,
   "인건비 관리": ROUTES.PAYROLL,
+  "경영 분석 리포트": ROUTES.BENCHMARK,
+  설정: ROUTES.SETTINGS,
 };
 
 const MENUS = [
   ["🏠", "홈"],
   ["📋", "지출 내역 분류"],
   ["👥", "인건비 관리"],
+  ["📊", "경영 분석 리포트"],
   ["🤖", "AI 세무 챗봇"],
   ["⚙️", "설정"],
 ];
@@ -21,7 +27,23 @@ const MENUS = [
 const SideBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [businessInfo, setBusinessInfo] = useState(null);
+  const { business } = useBusiness();
+  useEffect(() => {
+    if (!business?.businessId) return;
 
+    const loadBusinessInfo = async () => {
+      try {
+        const res = await getBusinessSettings(business.businessId);
+        console.log(res);
+        setBusinessInfo(res.data.data);
+      } catch (err) {
+        console.error("사업장 정보 조회 실패", err);
+      }
+    };
+
+    loadBusinessInfo();
+  }, [business?.businessId, location.pathname]);
   return (
     <SideBarContainer>
       <BrandWrapper>
@@ -35,7 +57,7 @@ const SideBar = () => {
 
         <MarketWrapper>
           <MarketContainer>
-            <MarketContent>앵무101 김포마산점</MarketContent>
+            <MarketContent>{businessInfo?.business_name ?? ""}</MarketContent>
           </MarketContainer>
         </MarketWrapper>
       </BrandWrapper>
@@ -54,9 +76,7 @@ const SideBar = () => {
             >
               <NavigationLogo>{icon}</NavigationLogo>
 
-              <NavigationText $active={isActive}>
-                {name}
-              </NavigationText>
+              <NavigationText $active={isActive}>{name}</NavigationText>
 
               {isActive && <ActiveDot />}
             </NavigationBtn>
@@ -66,8 +86,14 @@ const SideBar = () => {
 
       <UserInfoWrapper>
         <UserInfoContainer>
-          <UserIcon>유</UserIcon>
-          <UserName>유지은 사장님</UserName>
+          <UserIcon>
+            {businessInfo?.representative_name?.charAt(0) ?? ""}
+          </UserIcon>
+          <UserName>
+            {businessInfo?.representative_name
+              ? `${businessInfo.representative_name} 사장님`
+              : ""}
+          </UserName>
         </UserInfoContainer>
       </UserInfoWrapper>
     </SideBarContainer>
@@ -206,8 +232,7 @@ const NavigationBtn = styled.div`
   background: ${({ $active }) =>
     $active ? "rgba(201, 168, 130, 0.18)" : "transparent"};
 
-  cursor: ${({ $clickable }) =>
-    $clickable ? "pointer" : "default"};
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 
   &:not(:first-child) {
     margin-top: 4px;
@@ -224,8 +249,7 @@ const NavigationLogo = styled.p`
 `;
 
 const NavigationText = styled.p`
-  color: ${({ $active }) =>
-    $active ? "#c9a882" : "rgba(253, 249, 243, 0.5)"};
+  color: ${({ $active }) => ($active ? "#c9a882" : "rgba(253, 249, 243, 0.5)")};
 
   font-family: Outfit;
   font-size: 14px;

@@ -3,7 +3,7 @@ import EmployeeRow from "./EmployeeRow";
 
 const COLUMNS = ["직원", "고용 형태", "월 근무시간", "시급", "세전 급여"];
 
-function EmployeeTable({ employees, onUpdateEmployee }) {
+function EmployeeTable({ employees, onUpdateEmployee, onViewPayslip, onDeleteEmployee }) {
   return (
     <Wrapper>
       <ListHeader>
@@ -22,14 +22,24 @@ function EmployeeTable({ employees, onUpdateEmployee }) {
 
       <RowList>
         {employees.map((emp) => (
-          <EmployeeRow key={emp.id} employee={emp} onUpdate={onUpdateEmployee} />
+          <EmployeeRow
+            key={emp.employee_id}
+            employee={emp}
+            onUpdate={onUpdateEmployee}
+            onViewPayslip={onViewPayslip}
+            onDelete={onDeleteEmployee}
+          />
         ))}
       </RowList>
 
       <NoticeBox>
-        📋 원천세 납부 안내: 3.3% 프리랜서 원천세는 매월 10일까지 납부하셔야 합니다. 4대보험
-        정직원의 경우 근로소득 간이세액표 기준으로 자동 계산되며, 소액부징수(월 1,000원 미만)
-        시 징수하지 않습니다.
+        <span>📋</span>
+        <p>
+          <strong>원천세 납부 안내:</strong> 3.3% 프리랜서 원천세는 매월
+          10일까지 납부하셔야 합니다. 4대보험 정직원의 경우 근로소득 간이세액표
+          기준으로 자동 계산되며, 소액부징수(월 1,000원 미만) 시 징수하지
+          않습니다.
+        </p>
       </NoticeBox>
     </Wrapper>
   );
@@ -38,76 +48,143 @@ function EmployeeTable({ employees, onUpdateEmployee }) {
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
+
   flex: 1;
   min-height: 0;
 `;
 
 const ListHeader = styled.div`
   flex-shrink: 0;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px; /* TODO: design token화 */
+
+  margin-bottom: 1rem;
 `;
 
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: design token화 */
+
+  gap: 0.625rem;
 `;
 
 const Title = styled.p`
+  margin: 0;
+
   color: ${({ theme }) => theme.colors.txt_brown};
-  font-size: 16px; /* TODO: design token화 */
+
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.5rem;
+
+  letter-spacing: -0.02rem;
 `;
 
 const CountBadge = styled.span`
-  background-color: #F5EDE0; /* TODO: theme.js에 없는 값 - 요약 카드 note pill과 동일 색 */
-  color: #6B3F30; /* TODO: theme.js에 없는 값 - EmployeeRow 상세보기 버튼 글자색과 동일 */
-  border-radius: 999px;
-  padding: 3px 9px; /* TODO: design token화 */
-  font-size: 11px; /* TODO: design token화 */
+  background-color: #f5ede0;
+  color: #6b3f30;
+
+  border-radius: 1.25rem;
+
+  padding: 0.1875rem 0.5625rem;
+
+  font-size: 0.6875rem;
   font-weight: 700;
+  line-height: 1.03125rem;
+
+  white-space: nowrap;
 `;
 
 const HelperText = styled.p`
-  color: #8C6B5A; /* TODO: theme.js에 없는 값 */
-  font-size: 12px; /* TODO: design token화 */
+  margin: 0;
+
+  color: #8c6b5a;
+
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.125rem;
 `;
 
 const TableHeader = styled.div`
   flex-shrink: 0;
+
   display: grid;
-  grid-template-columns: 200fr 220fr 130fr 130fr 160fr; /* 피그마 실측 px 비율 */
-  gap: 12px; /* TODO: design token화 */
-  padding: 0 24px 8px; /* TODO: design token화 */
-  color: #8C6B5A; /* TODO: theme.js에 없는 값 */
-  font-size: 11px; /* TODO: design token화 */
+
+  grid-template-columns:
+    200fr
+    220fr
+    130fr
+    130fr
+    160fr;
+
+  gap: 0.75rem;
+
+  padding: 0 1.5rem;
+
+  color: #8c6b5a;
+
+  font-size: 0.6875rem;
   font-weight: 600;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.bg_gray};
+  line-height: 1.03125rem;
+
+  letter-spacing: 0.0275rem;
+
 `;
 
 const RowList = styled.div`
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+
   display: flex;
   flex-direction: column;
-  gap: 8px; /* TODO: design token화 */
-  padding-top: 8px; /* TODO: design token화 */
+
+  gap: 0.5rem;
+
+  padding-top: 0.5rem;
+
+  overflow-y: auto;
+
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
-const NoticeBox = styled.p`
+const NoticeBox = styled.div`
   flex-shrink: 0;
-  margin-top: 20px; /* TODO: design token화 */
-  background-color: #F5EDE0; /* TODO: theme.js에 없는 값 - 요약 카드 note pill과 동일 색 */
-  border: 0.8px solid #E8D9C8; /* TODO: theme.js에 없는 값 */
-  color: ${({ theme }) => theme.colors.txt_brown};
-  border-radius: ${({ theme }) => theme.radius.medium_large};
-  padding: 14px 20px; /* TODO: design token화 */
-  font-size: 13px; /* TODO: design token화 */
-  line-height: 1.5;
+
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+
+  margin-top: 1.25rem;
+  padding: 0.875rem 1.25rem;
+
+  background-color: #f5ede0;
+
+  border: 0.05rem solid #e8d9c8;
+  border-radius: 0.75rem;
+
+  color: #6b3f30;
+
+  > span {
+    font-size: 1rem;
+  }
+
+  > p {
+    margin: 0;
+
+    font-size: 0.78125rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+  }
+
+  strong {
+    font-weight: 700;
+  }
 `;
 
 export default EmployeeTable;
