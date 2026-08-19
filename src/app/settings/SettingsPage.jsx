@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import styled from "styled-components";
 import MembershipCard from "./components/MembershipCard";
 import BusinessInfoForm from "./components/BusinessInfoForm";
@@ -30,6 +30,15 @@ function SettingsPage() {
   const [isSyncingTaxType, setIsSyncingTaxType] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  // idle | saving | success - 저장 버튼 피드백 상태. 실패는 기존 프로젝트 컨벤션(PayrollPage)대로 alert로 안내하고 idle로 되돌린다.
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const saveStatusTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     const [businessRes, subscriptionRes] = await Promise.all([
@@ -61,13 +70,25 @@ function SettingsPage() {
 
   const handleSaveBusinessForm = async () => {
     // tax_type은 이 API로 수정 불가 - syncTaxType으로 별도 처리
-    const { business_name, representative_name, business_number, industry_code } = businessForm;
-    await updateBusinessSettings(business.businessId, {
-      business_name,
-      representative_name,
-      business_number,
-      industry_code,
-    });
+    const { business_name, representative_name, birth_date, phone_number, business_number, industry_code } = businessForm;
+
+    if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+    setSaveStatus("saving");
+    try {
+      await updateBusinessSettings(business.businessId, {
+        business_name,
+        representative_name,
+        birth_date,
+        phone_number,
+        business_number,
+        industry_code,
+      });
+      setSaveStatus("success");
+      saveStatusTimeoutRef.current = setTimeout(() => setSaveStatus("idle"), 1600);
+    } catch {
+      setSaveStatus("idle");
+      window.alert("설정 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   const handleSyncTaxType = async () => {
@@ -131,6 +152,7 @@ function SettingsPage() {
           form={businessForm}
           onChange={handleChangeBusinessForm}
           onSubmit={handleSaveBusinessForm}
+          saveStatus={saveStatus}
           onSyncTaxType={handleSyncTaxType}
           isSyncingTaxType={isSyncingTaxType}
         />

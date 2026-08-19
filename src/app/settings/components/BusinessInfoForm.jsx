@@ -1,5 +1,20 @@
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import Button from "../../../components/Button";
+
+// 숫자만 입력해도 자동으로 하이픈이 들어가도록 포맷팅. CardInputModal의 formatCardNumber/formatExpiry와 동일한 패턴.
+function formatPhoneNumber(raw) {
+  const digits = raw.replace(/\D/g, "").slice(0, 11); // 010-1234-5678 (3-4-4)
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function formatBirthDate(raw) {
+  const digits = raw.replace(/\D/g, "").slice(0, 8); // YYYY-MM-DD
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
 
 const TAX_TYPE_OPTIONS = [
   { value: "GENERAL", label: "일반과세자 (연 매출 1억 400만 원 이상 또는 선택)" },
@@ -7,8 +22,17 @@ const TAX_TYPE_OPTIONS = [
   { value: "EXEMPT", label: "면세사업자 (부가가치세 면제 품목 취급 사업자)" },
 ];
 
-function BusinessInfoForm({ form, onChange, onSubmit, onSyncTaxType, isSyncingTaxType }) {
-  const { business_name, representative_name, business_number, tax_type, industry_code, industry_name } = form;
+const SAVE_BUTTON_LABEL = {
+  idle: "💾 설정 저장하기",
+  saving: "저장 중...",
+  success: "✅ 저장 완료",
+};
+
+function BusinessInfoForm({ form, onChange, onSubmit, saveStatus = "idle", onSyncTaxType, isSyncingTaxType }) {
+  const {
+    business_name, representative_name, birth_date, phone_number,
+    business_number, tax_type, industry_code, industry_name,
+  } = form;
   const taxTypeLabel = TAX_TYPE_OPTIONS.find((option) => option.value === tax_type)?.label ?? tax_type;
 
   return (
@@ -32,6 +56,28 @@ function BusinessInfoForm({ form, onChange, onSubmit, onSyncTaxType, isSyncingTa
           <FieldInput
             value={representative_name}
             onChange={(e) => onChange("representative_name", e.target.value)}
+          />
+        </FieldGroup>
+
+        <FieldGroup>
+          <Label>대표자 연락처</Label>
+          <FieldInput
+            placeholder="예: 010-1234-5678"
+            value={phone_number}
+            onChange={(e) => onChange("phone_number", formatPhoneNumber(e.target.value))}
+            inputMode="numeric"
+            maxLength={13}
+          />
+        </FieldGroup>
+
+        <FieldGroup>
+          <Label>대표자 생년월일</Label>
+          <FieldInput
+            placeholder="예: 1985-01-23"
+            value={birth_date}
+            onChange={(e) => onChange("birth_date", formatBirthDate(e.target.value))}
+            inputMode="numeric"
+            maxLength={10}
           />
         </FieldGroup>
 
@@ -66,8 +112,14 @@ function BusinessInfoForm({ form, onChange, onSubmit, onSyncTaxType, isSyncingTa
       </FormArea>
 
       <ButtonWrapper>
-        <SubmitButton variant="button_large_brown" size="large" onClick={onSubmit}>
-          💾 설정 저장하기
+        <SubmitButton
+          variant="button_large_brown"
+          size="large"
+          onClick={onSubmit}
+          disabled={saveStatus === "saving"}
+          $status={saveStatus}
+        >
+          {SAVE_BUTTON_LABEL[saveStatus]}
         </SubmitButton>
       </ButtonWrapper>
     </Card>
@@ -123,9 +175,16 @@ const FormArea = styled.div`
   flex-direction: column;
   align-items: flex-start;
   align-self: stretch;
-  height: 402.25px;
-  padding: 18px 24px 0 24px; /* 피그마 스펙 */
+  height: 402.25px; /* 필드 7개가 다 안 들어가므로 내부 스크롤 처리 */
+  padding: 18px 24px 12px 24px; /* 피그마 스펙 + 스크롤 시 마지막 필드 여백 확보 */
   gap: 14px; /* TODO: design token화 */
+
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome/Safari - 스크롤바 숨김, EmployeeTable RowList와 동일 패턴 */
+  }
 `;
 
 const FieldGroup = styled.div`
@@ -269,11 +328,25 @@ const ButtonWrapper = styled.div`
   padding: 20px 24px 22px 24px; /* 피그마 스펙 */
 `;
 
+const SavePulse = keyframes`
+  0% { transform: scale(1); }
+  40% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+`;
+
 const SubmitButton = styled(Button)`
   display: flex;
   width: 100%;
   padding: 13px 20px; /* TODO: design token화 */
   gap: 8px; /* TODO: design token화 */
+  transition: background-color 0.2s ease, transform 0.15s ease;
+
+  ${({ $status }) =>
+    $status === "success" &&
+    css`
+      background-color: #4d9b6f !important; /* TODO: theme.js에 없는 값 - 저장 완료 피드백 */
+      animation: ${SavePulse} 0.35s ease;
+    `}
 `;
 
 export default BusinessInfoForm;
