@@ -96,6 +96,11 @@ function SettingsPage() {
     try {
       await syncTaxType(business.businessId);
       await loadData();
+    } catch (err) {
+      // CODEF 조회 실패(사업자번호 불일치, 응답 실패 등) 시 기존 값은 그대로 유지되므로
+      // 화면이 "동기화 안 됨"인지 "실패해서 옛날 값 그대로"인지 구분되도록 반드시 알려준다.
+      const message = err.response?.data?.message || "과세유형 동기화에 실패했습니다. 잠시 후 다시 시도해주세요.";
+      window.alert(message);
     } finally {
       setIsSyncingTaxType(false);
     }
