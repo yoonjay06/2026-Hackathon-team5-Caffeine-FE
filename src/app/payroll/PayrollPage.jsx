@@ -11,7 +11,6 @@ import {
   getEmployees,
   createEmployee,
   updateEmployee,
-  deleteEmployee,
   getPayrollSummary,
   getPayments,
   createPayment,
@@ -78,7 +77,10 @@ function PayrollPage() {
       getPayments(business.businessId, YEAR, MONTH),
       getPayrollSummary(business.businessId, YEAR, MONTH),
     ]);
-    setEmployees(mergeEmployeesWithPayments(employeesRes.data.data, paymentsRes.data.data));
+    // 퇴사 처리(soft delete)된 직원은 status가 INACTIVE로 바뀔 뿐 서버에서 계속 내려오므로,
+    // 화면에는 재직 중인 직원만 보이도록 걸러낸다.
+    const activeEmployees = employeesRes.data.data.filter((emp) => emp.status !== "INACTIVE");
+    setEmployees(mergeEmployeesWithPayments(activeEmployees, paymentsRes.data.data));
     setSummary(summaryRes.data.data);
   }, [business.businessId]);
 
@@ -158,17 +160,14 @@ function PayrollPage() {
     downloadBlob(res, `payslip_${paymentId}.pdf`);
   };
 
+  // 직원 X 버튼 = 완전 삭제가 아니라 퇴사 처리(soft delete). status만 INACTIVE로 바꾸고
+  // row는 그대로 남기므로, 이번 달 급여 기록이 있는 직원도 문제없이 처리된다.
   const handleDeleteEmployee = async (employeeId) => {
     try {
-      await deleteEmployee(business.businessId, employeeId);
+      await updateEmployee(business.businessId, employeeId, { status: "INACTIVE" });
       await loadData();
-    } catch (err) {
-      // 급여 기록이 있는 직원은 서버에서 409(EMPLOYEE_HAS_PAYROLL_DATA)로 삭제를 막음
-      if (err.response?.status === 409) {
-        window.alert("이번 달 급여 기록이 있는 직원은 삭제할 수 없습니다.");
-        return;
-      }
-      throw err;
+    } catch {
+      window.alert("퇴사 처리에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 

@@ -21,17 +21,14 @@ function ExpenseList({
     totalCount === 0 ? 0 : (classifiedCount / totalCount) * 100;
 
   const filteredTransactions = transactions.filter((tx) => {
-    if (selectedFilter === "all") {
-      return true;
-    }
+  if (selectedFilter === "all") return true;
 
-    // "품목 미분류" 필터는 사업/개인 구분(category)이 아니라 품목 분류(itemCategoryCode) 기준
-    if (selectedFilter === "unclassified") {
-      return tx.itemCategoryCode === "UNCLASSIFIED";
-    }
+  if (selectedFilter === "unclassified") {
+    return tx.category === null;
+  }
 
-    return tx.category === selectedFilter;
-  });
+  return tx.category === selectedFilter;
+});
   return (
     <Wrapper>
       <ListHeader>

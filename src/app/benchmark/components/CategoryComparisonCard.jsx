@@ -1,9 +1,9 @@
 import styled from "styled-components";
 
 const STATUS_COLOR = {
-  GOOD: "#2e7d52", // TODO: theme.js에 없는 값
-  WARNING: "#e07a2f", // TODO: theme.js에 없는 값
-  CAUTION: "#E03131", // theme.colors.error와 동일
+  GOOD: "#2E7D52", // TODO: theme.js에 없는 값
+  WARNING: "#8A8078", // TODO: theme.js에 없는 값
+  CAUTION: "#E07A2F", // theme.colors.error와 동일
 };
 
 function CategoryComparisonCard({ categoryComparison, totalRevenue }) {

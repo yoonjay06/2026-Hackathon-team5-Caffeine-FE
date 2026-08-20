@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import Button from "../../../components/Button";
-import CheckIcon from "../../../assets/CheckIcon.png";
-import { useState } from "react";
+import CheckIcon from "../../../assets/checkIcon.png";
+import { useState, useEffect } from "react";
 
 const BAR_COLOR = {
   business: "bg_brown",
@@ -14,6 +14,7 @@ function TaxImpactPanel({
   estimatedVat,
   normalInputTax,
   deemedInputTax,
+  transactions,
 }) {
   // 중복 계산 줄이기
   const isCompleted = summary.unclassified.count === 0;
@@ -32,6 +33,10 @@ function TaxImpactPanel({
       alert("아직 미분류된 지출이 있습니다.");
     }
   };
+
+  useEffect(() => {
+    setIsSaved(false);
+  }, [transactions]);
 
   return (
     <Wrapper>
@@ -213,7 +218,6 @@ const Wrapper = styled.aside`
   flex-direction: column;
 
   padding: 3.529vh 1.783vw 3.529vh 1.715vw;
-
 
   background-color: #fdf9f3;
   border-left: 0.069vw solid rgba(61, 37, 30, 0.08);

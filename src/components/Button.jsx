@@ -36,7 +36,7 @@ button_large_gray: css`
   background-color: ${({ theme }) => theme.colors.bg_dark_gray};
   color: ${({ theme }) => theme.colors.txt_white};
   font-size: 0.75rem;
-  
+  display: flex;
 `,
 
   filter_unchecked: css`

@@ -28,8 +28,9 @@ function EmployeeRow({ employee, onUpdate, onViewPayslip, onDelete }) {
   const hasTaxOwed = withholdingTax > 0;
   const withholdingNote = getWithholdingNote(employment_type, grossPay, withholdingTax);
 
+  // 실제로는 완전 삭제가 아니라 퇴사 처리(soft delete) - status만 INACTIVE로 바뀌고 목록에서만 숨겨짐
   const handleDelete = () => {
-    if (window.confirm(`${name} 직원을 삭제하시겠습니까?`)) {
+    if (window.confirm(`${name} 직원을 퇴사 처리하시겠습니까?`)) {
       onDelete(employee_id);
     }
   };
@@ -70,7 +71,7 @@ function EmployeeRow({ employee, onUpdate, onViewPayslip, onDelete }) {
 
   return (
     <Card>
-      <DeleteButton type="button" onClick={handleDelete} aria-label={`${name} 삭제`}>
+      <DeleteButton type="button" onClick={handleDelete} aria-label={`${name} 퇴사 처리`}>
         ✕
       </DeleteButton>
 
