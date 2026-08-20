@@ -55,6 +55,7 @@ function TransactionReviewPage() {
     start_date: `${YEAR}-${String(MONTH).padStart(2, "0")}-01`,
     transaction_type: "PURCHASE",
   });
+
     setTransactions(res.data.data.items.map(normalizeTransaction));
   }, [business.businessId]);
 
