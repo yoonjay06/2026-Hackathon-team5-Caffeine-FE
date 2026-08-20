@@ -56,6 +56,9 @@ function TransactionReviewPage() {
     transaction_type: "PURCHASE",
   });
 
+    setTransactions(res.data.data.items.map(normalizeTransaction));
+  }, [business.businessId]);
+
   setTransactions(res.data.data.items.map(normalizeTransaction));
 }, [business.businessId]);
   useEffect(() => {
